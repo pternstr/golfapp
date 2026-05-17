@@ -159,6 +159,18 @@
     .gir-yes { color: var(--green-mid); font-weight: 700; }
     .gir-no  { color: var(--muted); }
 
+    /* ── Score symbols ── */
+    .score-sym {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; font-weight: 800; font-size: 0.85rem; line-height: 1;
+    }
+    .score-eagle  { border-radius: 50%; background: #e63946; color: #fff; box-shadow: 0 0 0 2px #e63946, 0 0 0 4px #fff, 0 0 0 6px #e63946; }
+    .score-birdie { border-radius: 50%; background: #e63946; color: #fff; }
+    .score-par    { background: #fff; color: var(--text); border: 1.5px solid #dee2e6; border-radius: 3px; }
+    .score-bogey  { background: #fff; color: var(--text); border: 2.5px solid #1a6eff; border-radius: 2px; }
+    .score-double { background: #fff; color: var(--text); border: 2.5px solid #1a6eff; border-radius: 2px; box-shadow: 0 0 0 4px #fff, 0 0 0 6.5px #1a6eff; }
+    .score-over   { background: #fff3cd; color: #856404; border: 2px solid #856404; border-radius: 2px; }
+
     /* ── History ── */
     .round-item {
       background: var(--card); border-radius: var(--radius);
@@ -465,7 +477,7 @@
     { name:'Mölndals GK', par:74, cr:71.5, sr:134, holes:[
       {par:4,idx:13},{par:5,idx:3},{par:3,idx:17},{par:4,idx:11},
       {par:5,idx:9},{par:4,idx:7},{par:3,idx:15},{par:4,idx:5},
-      {par:4,idx:1},{par:5,idx:10},{par:3,idx:10},{par:4,idx:4},
+      {par:4,idx:1},{par:5,idx:10},{par:3,idx:16},{par:4,idx:4},
       {par:4,idx:12},{par:4,idx:2},{par:4,idx:8},{par:4,idx:14},
       {par:3,idx:18},{par:5,idx:6}]},
     { name:'Hooks GK', par:72, cr:72.4, sr:130, holes:[
@@ -668,6 +680,7 @@
       const data  = player.holes[h - 1];
       const score = data.played ? data.result : courseHole.par;
       const putts = data.played ? data.putts  : 2;
+      const autoGir = data.played ? data.gir : (score === courseHole.par && putts === 2);
       return `
         <div class="hole-player-row">
           <div class="hole-player-name">${escHtml(player.name)}</div>
@@ -690,7 +703,7 @@
             </div>
             <div class="hole-stepper-group">
               <span class="hole-stepper-label">GIR</span>
-              <input type="checkbox" class="gir-cb" id="p${pi}-gir" ${data.gir ? 'checked' : ''} />
+              <input type="checkbox" class="gir-cb" id="p${pi}-gir" ${autoGir ? 'checked' : ''} />
             </div>
           </div>
         </div>`;
@@ -708,6 +721,12 @@
     if (field === 'result') val = Math.max(1, Math.min(20, val));
     if (field === 'putts')  val = Math.max(0, Math.min(10, val));
     el.textContent = val;
+    // Auto-select GIR when score == par and putts == 2
+    const courseHole = currentRound.courseHoles[currentHole - 1];
+    const par   = parseInt(document.getElementById(`p${pi}-result`).textContent);
+    const putts = parseInt(document.getElementById(`p${pi}-putts`).textContent);
+    const girEl = document.getElementById(`p${pi}-gir`);
+    if (courseHole && par === courseHole.par && putts === 2) girEl.checked = true;
   }
 
   function readHoleInputs() {
@@ -838,11 +857,10 @@
       players.forEach(p => {
         const hd = p.holes[holeNum - 1];
         if (hd && hd.played) {
-          const diff  = hd.result - ch.par;
-          const style = diff > 0 ? 'color:#e63946' : diff < 0 ? 'color:var(--green-mid)' : '';
-          row += `<td><strong${style ? ` style="${style}"` : ''}>${hd.result}</strong></td>`;
+          row += `<td>${scoreSymbol(hd.result, ch.par)}</td>`;
           if (p.playingHcp !== null) {
-            row += `<td>${hd.result - strokesOnHole(p.playingHcp, ch.idx)}</td>`;
+            const net = hd.result - strokesOnHole(p.playingHcp, ch.idx);
+            row += `<td>${scoreSymbol(net, ch.par)}</td>`;
           }
         } else {
           row += `<td>–</td>`;
@@ -906,10 +924,13 @@
         const pScore  = pPlayed.reduce((s, h) => s + h.result, 0);
         const tableHeader = `<tr><th>#</th><th>Gross</th>${pPh !== null ? '<th>Stk</th><th>Net</th>' : ''}<th>Putts</th><th>GIR</th></tr>`;
         const tableRows = pPlayed.map(h => {
-          const stk = (pPh !== null && r.courseHoles) ? strokesOnHole(pPh, r.courseHoles[h.hole - 1].idx) : null;
+          const ch  = r.courseHoles ? r.courseHoles[h.hole - 1] : null;
+          const stk = (pPh !== null && ch) ? strokesOnHole(pPh, ch.idx) : null;
+          const grossCell = ch ? scoreSymbol(h.result, ch.par) : h.result;
+          const netCell   = (stk !== null && ch) ? scoreSymbol(h.result - stk, ch.par) : null;
           return `<tr>
-            <td>${h.hole}</td><td>${h.result}</td>
-            ${stk !== null ? `<td>${stk > 0 ? stk : '–'}</td><td>${h.result - stk}</td>` : ''}
+            <td>${h.hole}</td><td>${grossCell}</td>
+            ${stk !== null ? `<td>${stk > 0 ? stk : '–'}</td><td>${netCell}</td>` : ''}
             <td>${h.putts}</td>
             <td class="${h.gir ? 'gir-yes' : 'gir-no'}">${h.gir ? '✓' : '–'}</td>
           </tr>`;
@@ -966,6 +987,18 @@
 
   function escHtml(str) {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function scoreSymbol(score, par) {
+    const diff = score - par;
+    let cls;
+    if      (diff <= -2) cls = 'score-eagle';
+    else if (diff === -1) cls = 'score-birdie';
+    else if (diff ===  0) cls = 'score-par';
+    else if (diff ===  1) cls = 'score-bogey';
+    else if (diff ===  2) cls = 'score-double';
+    else                  cls = 'score-over';
+    return `<span class="score-sym ${cls}">${score}</span>`;
   }
 
   function showToast(msg) {
