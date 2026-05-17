@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Golf Scorecard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green-dark: #1b4332;
+      --green-mid:  #2d6a4f;
+      --green-light:#52b788;
+      --green-pale: #d8f3dc;
+      --accent:     #f4a261;
+      --text:       #1a1a1a;
+      --muted:      #6c757d;
+      --bg:         #f8f9fa;
+      --card:       #ffffff;
+      --radius:     12px;
+      --shadow:     0 2px 12px rgba(0,0,0,0.10);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 40px;
+    }
+
+    header {
+      background: var(--green-dark);
+      color: #fff;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: var(--shadow);
+    }
+    header h1 { font-size: 1.3rem; font-weight: 700; flex: 1; }
+    header .logo { font-size: 1.6rem; }
+
+    .view { display: none; padding: 20px; max-width: 500px; margin: 0 auto; }
+    .view.active { display: block; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card h2 { font-size: 1.1rem; color: var(--green-dark); margin-bottom: 14px; }
+
+    /* ── Form fields ── */
+    label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+    input[type="text"], input[type="date"], input[type="number"] {
+      width: 100%; padding: 11px 14px; font-size: 1rem;
+      border: 1.5px solid #dee2e6; border-radius: 8px;
+      background: var(--bg); color: var(--text);
+      transition: border-color .2s;
+    }
+    input:focus { outline: none; border-color: var(--green-light); }
+    .field { margin-bottom: 14px; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 12px 22px; font-size: 1rem; font-weight: 600;
+      border: none; border-radius: 8px; cursor: pointer; transition: opacity .15s, transform .1s;
+      text-decoration: none;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary   { background: var(--green-mid);  color: #fff; }
+    .btn-secondary { background: var(--green-pale); color: var(--green-dark); }
+    .btn-accent    { background: var(--accent);     color: #fff; }
+    .btn-danger    { background: #e63946;            color: #fff; }
+    .btn-ghost     { background: transparent; color: var(--muted); border: 1.5px solid #dee2e6; }
+    .btn-full      { width: 100%; }
+    .btn + .btn    { margin-top: 10px; }
+    .btn:disabled  { opacity: 0.45; cursor: not-allowed; }
+
+    /* ── Hole input ── */
+    .hole-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .hole-badge {
+      background: var(--green-dark); color: #fff;
+      width: 52px; height: 52px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; font-weight: 800;
+    }
+    .hole-label { font-size: 0.8rem; color: var(--muted); text-align: center; }
+
+    .hole-chip {
+      background: var(--green-pale); color: var(--green-dark);
+      font-size: 0.78rem; font-weight: 700; padding: 4px 10px;
+      border-radius: 99px; white-space: nowrap;
+    }
+    .hole-chip-index { background: #fff3cd; color: #856404; }
+
+    /* ── Steppers ── */
+    .stepper-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;
+    }
+    .stepper-field { display: flex; flex-direction: column; gap: 4px; }
+    .stepper-field label { font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+    .stepper {
+      display: flex; align-items: center; border: 1.5px solid #dee2e6;
+      border-radius: 8px; overflow: hidden; background: var(--bg);
+    }
+    .stepper-btn {
+      width: 44px; height: 50px; font-size: 1.4rem; font-weight: 700;
+      border: none; background: var(--green-pale); color: var(--green-dark);
+      cursor: pointer; flex-shrink: 0; transition: background .15s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .stepper-btn:active { background: var(--green-light); color: #fff; }
+    .stepper-val {
+      flex: 1; text-align: center; font-size: 1.6rem; font-weight: 800;
+      color: var(--text); line-height: 50px; min-width: 0;
+    }
+
+    /* GIR toggle */
+    .gir-row {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--green-pale); border-radius: 8px; padding: 12px 14px;
+      margin-bottom: 18px; cursor: pointer;
+    }
+    .gir-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--green-mid); cursor: pointer; }
+    .gir-row span { font-weight: 600; color: var(--green-dark); font-size: 0.95rem; }
+    .gir-row small { color: var(--muted); font-size: 0.78rem; display: block; }
+
+    .nav-row { display: flex; gap: 10px; }
+    .nav-row .btn { flex: 1; }
+
+    /* Progress bar */
+    .progress-bar { background: #dee2e6; border-radius: 99px; height: 6px; margin-bottom: 20px; overflow: hidden; }
+    .progress-fill { background: var(--green-light); height: 100%; border-radius: 99px; transition: width .3s; }
+
+    /* ── Summary ── */
+    .stat-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 0;
+    }
+    .stat-box {
+      background: var(--green-pale); border-radius: 10px; padding: 14px 8px; text-align: center;
+    }
+    .stat-box .val { font-size: 1.8rem; font-weight: 800; color: var(--green-dark); }
+    .stat-box .lbl { font-size: 0.72rem; font-weight: 600; color: var(--muted); margin-top: 2px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { background: var(--green-dark); color: #fff; padding: 8px 6px; text-align: center; }
+    td { padding: 7px 6px; text-align: center; border-bottom: 1px solid #f0f0f0; }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: var(--green-pale); }
+    .gir-yes { color: var(--green-mid); font-weight: 700; }
+    .gir-no  { color: var(--muted); }
+
+    /* ── History ── */
+    .round-item {
+      background: var(--card); border-radius: var(--radius);
+      box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden;
+    }
+    .round-summary-row {
+      display: flex; align-items: center; padding: 14px 16px; cursor: pointer; gap: 12px;
+    }
+    .round-summary-row:hover { background: var(--green-pale); }
+    .round-icon { font-size: 1.5rem; }
+    .round-info { flex: 1; }
+    .round-info .course { font-weight: 700; font-size: 1rem; }
+    .round-info .meta   { font-size: 0.78rem; color: var(--muted); }
+    .round-score { font-size: 1.6rem; font-weight: 800; color: var(--green-dark); }
+    .round-detail { display: none; padding: 0 16px 14px; }
+    .round-detail.open { display: block; }
+    .round-detail table { margin-top: 8px; }
+    .round-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+    /* ── Home two-column layout ── */
+    .home-layout {
+      display: flex; gap: 16px; align-items: flex-start;
+    }
+    .player-list-col {
+      width: 130px; flex-shrink: 0;
+      background: var(--card); border-radius: var(--radius);
+      box-shadow: var(--shadow); overflow: hidden;
+    }
+    .player-list-col h3 {
+      font-size: 0.75rem; font-weight: 700; color: #fff;
+      background: var(--green-dark); padding: 8px 10px; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .player-list-empty {
+      padding: 12px 10px; font-size: 0.78rem; color: var(--muted); text-align: center;
+    }
+    .player-btn {
+      display: block; width: 100%; text-align: left;
+      padding: 10px 12px; font-size: 0.88rem; font-weight: 500;
+      border: none; background: transparent; cursor: pointer; color: var(--text);
+      border-bottom: 1px solid #f0f0f0; transition: background .15s;
+    }
+    .player-btn:last-child { border-bottom: none; }
+    .player-btn:hover  { background: var(--green-pale); }
+    .player-btn.active { background: var(--green-pale); color: var(--green-dark); font-weight: 700; }
+    .form-col { flex: 1; min-width: 0; }
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 10px; }
+
+    /* ── Player slots (home screen) ── */
+    .player-slot {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
+    }
+    .player-slot .slot-name { flex: 1; min-width: 0; padding: 9px 11px; font-size: 0.92rem; }
+    .player-slot .slot-hcp  { width: 72px; flex-shrink: 0; padding: 9px 8px; font-size: 0.92rem; }
+    .slot-remove {
+      width: 28px; height: 28px; border: none; background: #fce4e4; color: #e63946;
+      border-radius: 6px; cursor: pointer; font-size: 0.85rem; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; transition: background .15s;
+    }
+    .slot-remove:hover { background: #e63946; color: #fff; }
+    .slot-remove-placeholder { width: 28px; flex-shrink: 0; }
+
+    /* ── Hole input: per-player rows ── */
+    .hole-player-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 0; border-bottom: 1px solid #f0f0f0;
+    }
+    .hole-player-row:last-child { border-bottom: none; }
+    .hole-player-name {
+      font-weight: 700; font-size: 0.85rem; width: 68px; flex-shrink: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--green-dark);
+    }
+    .hole-player-inputs { display: flex; align-items: center; gap: 8px; flex: 1; flex-wrap: nowrap; }
+    .hole-stepper-group { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .hole-stepper-label { font-size: 0.62rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
+    .mini-stepper {
+      display: flex; align-items: center; border: 1.5px solid #dee2e6;
+      border-radius: 6px; overflow: hidden; background: var(--bg);
+    }
+    .mini-stepper-btn {
+      width: 30px; height: 36px; font-size: 1.1rem; font-weight: 700;
+      border: none; background: var(--green-pale); color: var(--green-dark);
+      cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .mini-stepper-btn:active { background: var(--green-light); color: #fff; }
+    .mini-stepper-val {
+      min-width: 28px; text-align: center; font-size: 1.05rem; font-weight: 800;
+      color: var(--text); line-height: 36px; padding: 0 4px;
+    }
+    .gir-cb { width: 20px; height: 20px; accent-color: var(--green-mid); cursor: pointer; margin: 0; }
+
+    /* ── Per-player stat cards (summary) ── */
+    .player-stat-card { margin-bottom: 18px; }
+    .player-stat-card:last-child { margin-bottom: 0; }
+    .player-stat-name { font-weight: 700; color: var(--green-dark); margin-bottom: 8px; font-size: 1rem; }
+    .player-stat-card .stat-grid { grid-template-columns: repeat(3, 1fr); }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--green-dark); color: #fff; padding: 10px 22px;
+      border-radius: 99px; font-size: 0.9rem; font-weight: 600;
+      box-shadow: var(--shadow); opacity: 0; pointer-events: none;
+      transition: opacity .3s;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">⛳</span>
+  <h1>Golf Scorecard</h1>
+</header>
+
+<!-- ══ HOME VIEW ══ -->
+<div id="view-home" class="view active">
+  <div class="home-layout">
+    <!-- Player list -->
+    <div class="player-list-col">
+      <h3>Players</h3>
+      <div id="player-list-items">
+        <div class="player-list-empty">No players yet</div>
+      </div>
+    </div>
+    <!-- Form -->
+    <div class="form-col">
+      <div class="card">
+        <h2>New Round</h2>
+        <div class="field">
+          <label>Players</label>
+          <div id="player-slots"></div>
+          <button id="btn-add-player" class="btn btn-ghost btn-full"
+            style="margin-top:6px;padding:8px 14px;font-size:0.85rem"
+            onclick="addPlayerSlot()">+ Add Player</button>
+        </div>
+        <div class="field">
+          <label for="course-select">Course</label>
+          <select id="course-select"
+            style="width:100%;padding:11px 14px;font-size:1rem;border:1.5px solid #dee2e6;border-radius:8px;background:var(--bg);color:var(--text)">
+          </select>
+        </div>
+        <div class="field">
+          <label for="round-date">Date</label>
+          <input type="date" id="round-date" />
+        </div>
+        <button class="btn btn-primary btn-full" onclick="startRound()">▶ Start Round</button>
+        <button class="btn btn-secondary btn-full" onclick="showView('view-history', (document.querySelector('.slot-name')||{}).value||'')">📋 View History</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ HOLE INPUT VIEW ══ -->
+<div id="view-hole" class="view">
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  <div class="card">
+    <div class="hole-header">
+      <div>
+        <div class="hole-badge" id="hole-badge">1</div>
+        <div class="hole-label">of 18</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+        <div style="display:flex;gap:8px">
+          <div class="hole-chip" id="hole-par-chip">Par –</div>
+          <div class="hole-chip hole-chip-index" id="hole-idx-chip">Idx –</div>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:700;font-size:1rem" id="hole-course-label"></div>
+        <div style="font-size:0.78rem;color:var(--muted)" id="hole-player-label"></div>
+      </div>
+    </div>
+
+    <div id="hole-players-container"></div>
+
+    <div class="nav-row">
+      <button class="btn btn-ghost" id="btn-prev" onclick="prevHole()">← Prev</button>
+      <button class="btn btn-primary" id="btn-next" onclick="nextHole()">Next →</button>
+    </div>
+    <button class="btn btn-accent btn-full" style="margin-top:10px" onclick="confirmFinish()">🏁 Finish Round</button>
+  </div>
+</div>
+
+<!-- ══ SUMMARY VIEW ══ -->
+<div id="view-summary" class="view">
+  <div class="card">
+    <h2>Round Complete 🎉</h2>
+    <div id="summary-meta" style="color:var(--muted);font-size:0.85rem;margin-bottom:16px"></div>
+    <div class="stat-grid" id="summary-stats"></div>
+  </div>
+  <div class="card">
+    <h2>Scorecard</h2>
+    <div style="overflow-x:auto"><table id="summary-table"></table></div>
+  </div>
+  <button class="btn btn-primary btn-full" onclick="showView('view-home')">🏠 New Round</button>
+  <button class="btn btn-secondary btn-full" onclick="showView('view-history', currentRound && currentRound.players && currentRound.players[0] && currentRound.players[0].name)">📋 View History</button>
+</div>
+
+<!-- ══ HISTORY VIEW ══ -->
+<div id="view-history" class="view">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+    <button class="btn btn-ghost" onclick="showView('view-home')">← Back</button>
+    <h2 style="font-size:1.1rem;color:var(--green-dark);flex:1">Round History</h2>
+  </div>
+  <div class="card" style="padding:14px 16px;margin-bottom:16px">
+    <label for="history-player-filter" style="margin-bottom:6px">Player</label>
+    <select id="history-player-filter" onchange="renderHistory()"
+      style="width:100%;padding:10px 12px;font-size:1rem;border:1.5px solid #dee2e6;border-radius:8px;background:var(--bg);color:var(--text)">
+    </select>
+  </div>
+  <div id="history-list"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ═══════════════════════════════════════════════
+     COURSE DATA  (par & index per hole)
+     Note: Data is representative – verify against
+     official scorecards for exact values.
+  ═══════════════════════════════════════════════ */
+  const COURSES = [
+    { name:'Halmstad GK – Norra', par:72, cr:73.8, sr:136, holes:[
+      {par:4,idx:9},{par:5,idx:13},{par:4,idx:5},{par:3,idx:17},
+      {par:4,idx:3},{par:5,idx:7},{par:4,idx:1},{par:3,idx:15},
+      {par:4,idx:11},{par:4,idx:6},{par:5,idx:16},{par:4,idx:4},
+      {par:3,idx:12},{par:4,idx:2},{par:5,idx:8},{par:4,idx:18},
+      {par:3,idx:14},{par:4,idx:10}]},
+    { name:'Halmstad GK – Södra', par:71, cr:72.1, sr:130, holes:[
+      {par:4,idx:7},{par:5,idx:15},{par:3,idx:11},{par:4,idx:3},
+      {par:4,idx:17},{par:4,idx:1},{par:3,idx:13},{par:5,idx:5},
+      {par:4,idx:9},{par:4,idx:8},{par:4,idx:2},{par:3,idx:16},
+      {par:4,idx:12},{par:5,idx:6},{par:4,idx:4},{par:3,idx:18},
+      {par:4,idx:10},{par:4,idx:14}]},
+    { name:'Falsterbo GK', par:71, cr:72.5, sr:132, holes:[
+      {par:4,idx:11},{par:5,idx:3},{par:4,idx:7},{par:3,idx:15},
+      {par:4,idx:1},{par:4,idx:9},{par:3,idx:13},{par:5,idx:5},
+      {par:4,idx:17},{par:4,idx:4},{par:4,idx:8},{par:3,idx:16},
+      {par:4,idx:2},{par:5,idx:12},{par:4,idx:6},{par:3,idx:18},
+      {par:4,idx:10},{par:4,idx:14}]},
+    { name:'Bro Hof Slott GC – Strandbannan', par:72, cr:76.2, sr:145, holes:[
+      {par:4,idx:7},{par:4,idx:1},{par:5,idx:11},{par:3,idx:15},
+      {par:4,idx:5},{par:5,idx:9},{par:4,idx:3},{par:3,idx:17},
+      {par:4,idx:13},{par:4,idx:6},{par:4,idx:2},{par:5,idx:16},
+      {par:3,idx:12},{par:4,idx:8},{par:5,idx:14},{par:4,idx:4},
+      {par:3,idx:18},{par:4,idx:10}]},
+    { name:'Barsebäck G&CC – Masters', par:72, cr:74.1, sr:138, holes:[
+      {par:4,idx:9},{par:4,idx:3},{par:5,idx:13},{par:3,idx:15},
+      {par:4,idx:5},{par:4,idx:1},{par:3,idx:17},{par:5,idx:7},
+      {par:4,idx:11},{par:4,idx:6},{par:4,idx:4},{par:3,idx:14},
+      {par:5,idx:8},{par:4,idx:2},{par:4,idx:16},{par:5,idx:10},
+      {par:3,idx:18},{par:4,idx:12}]},
+    { name:'Vasatorp GK', par:72, cr:72.8, sr:131, holes:[
+      {par:4,idx:5},{par:5,idx:9},{par:4,idx:1},{par:3,idx:13},
+      {par:4,idx:7},{par:4,idx:15},{par:3,idx:17},{par:5,idx:3},
+      {par:4,idx:11},{par:4,idx:8},{par:5,idx:14},{par:4,idx:2},
+      {par:3,idx:16},{par:4,idx:6},{par:4,idx:10},{par:5,idx:12},
+      {par:3,idx:18},{par:4,idx:4}]},
+    { name:'Ljunghusen GK', par:71, cr:71.5, sr:129, holes:[
+      {par:4,idx:3},{par:4,idx:11},{par:5,idx:7},{par:3,idx:15},
+      {par:4,idx:1},{par:4,idx:9},{par:3,idx:17},{par:5,idx:5},
+      {par:4,idx:13},{par:4,idx:6},{par:3,idx:12},{par:4,idx:2},
+      {par:5,idx:8},{par:4,idx:14},{par:3,idx:18},{par:4,idx:4},
+      {par:4,idx:10},{par:4,idx:16}]},
+    { name:'PGA Sweden National', par:72, cr:73.6, sr:135, holes:[
+      {par:5,idx:7},{par:4,idx:11},{par:3,idx:15},{par:4,idx:3},
+      {par:4,idx:9},{par:5,idx:13},{par:4,idx:1},{par:3,idx:17},
+      {par:4,idx:5},{par:4,idx:8},{par:4,idx:2},{par:5,idx:14},
+      {par:3,idx:16},{par:4,idx:4},{par:4,idx:12},{par:5,idx:6},
+      {par:3,idx:18},{par:4,idx:10}]},
+    { name:'Ullna G&CC', par:72, cr:72.9, sr:133, holes:[
+      {par:4,idx:7},{par:5,idx:11},{par:4,idx:3},{par:3,idx:17},
+      {par:4,idx:1},{par:4,idx:13},{par:3,idx:15},{par:5,idx:5},
+      {par:4,idx:9},{par:4,idx:6},{par:4,idx:14},{par:3,idx:16},
+      {par:5,idx:4},{par:4,idx:2},{par:4,idx:12},{par:5,idx:8},
+      {par:3,idx:18},{par:4,idx:10}]},
+    { name:'Göteborgs GK', par:72, cr:73.2, sr:132, holes:[
+      {par:4,idx:9},{par:4,idx:1},{par:3,idx:13},{par:5,idx:5},
+      {par:4,idx:11},{par:3,idx:17},{par:4,idx:3},{par:5,idx:7},
+      {par:4,idx:15},{par:4,idx:4},{par:5,idx:10},{par:4,idx:2},
+      {par:3,idx:14},{par:5,idx:8},{par:4,idx:6},{par:3,idx:18},
+      {par:4,idx:12},{par:4,idx:16}]},
+    { name:'Rya GK', par:71, cr:71.8, sr:128, holes:[
+      {par:4,idx:5},{par:4,idx:9},{par:3,idx:13},{par:5,idx:1},
+      {par:4,idx:11},{par:4,idx:3},{par:3,idx:17},{par:5,idx:7},
+      {par:4,idx:15},{par:4,idx:8},{par:3,idx:14},{par:4,idx:2},
+      {par:5,idx:6},{par:4,idx:10},{par:3,idx:18},{par:4,idx:4},
+      {par:5,idx:12},{par:4,idx:16}]},
+    { name:'Österåkers GK', par:72, cr:72.5, sr:130, holes:[
+      {par:4,idx:11},{par:5,idx:5},{par:4,idx:1},{par:3,idx:15},
+      {par:4,idx:7},{par:3,idx:17},{par:5,idx:9},{par:4,idx:3},
+      {par:4,idx:13},{par:4,idx:6},{par:4,idx:2},{par:3,idx:16},
+      {par:5,idx:8},{par:4,idx:12},{par:4,idx:4},{par:5,idx:14},
+      {par:3,idx:18},{par:4,idx:10}]},
+    { name:'Mölle GK', par:71, cr:71.3, sr:127, holes:[
+      {par:4,idx:3},{par:3,idx:15},{par:4,idx:9},{par:5,idx:5},
+      {par:4,idx:1},{par:4,idx:11},{par:3,idx:17},{par:5,idx:7},
+      {par:4,idx:13},{par:4,idx:8},{par:5,idx:4},{par:4,idx:2},
+      {par:3,idx:14},{par:4,idx:10},{par:3,idx:18},{par:4,idx:6},
+      {par:5,idx:12},{par:4,idx:16}]},
+    { name:'Mölndals GK', par:74, cr:71.5, sr:134, holes:[
+      {par:4,idx:13},{par:5,idx:3},{par:3,idx:17},{par:4,idx:11},
+      {par:5,idx:9},{par:4,idx:7},{par:3,idx:15},{par:4,idx:5},
+      {par:4,idx:1},{par:5,idx:10},{par:3,idx:10},{par:4,idx:4},
+      {par:4,idx:12},{par:4,idx:2},{par:4,idx:8},{par:4,idx:14},
+      {par:3,idx:18},{par:5,idx:6}]},
+    { name:'Hooks GK', par:72, cr:72.4, sr:130, holes:[
+      {par:5,idx:3},{par:4,idx:9},{par:4,idx:1},{par:3,idx:15},
+      {par:4,idx:7},{par:5,idx:11},{par:3,idx:17},{par:4,idx:5},
+      {par:4,idx:13},{par:4,idx:4},{par:3,idx:16},{par:5,idx:8},
+      {par:4,idx:2},{par:4,idx:14},{par:3,idx:18},{par:5,idx:6},
+      {par:4,idx:12},{par:4,idx:10}]},
+  ];
+
+  /* Populate course dropdown */
+  (function populateCourseSelect() {
+    const sel = document.getElementById('course-select');
+    COURSES.forEach((c, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = `${c.name} (par ${c.par})`;
+      sel.appendChild(opt);
+    });
+    const defaultIdx = COURSES.findIndex(c => c.name.includes('Mölndal'));
+    if (defaultIdx >= 0) sel.value = defaultIdx;
+  })();
+
+  /* ═══════════════════════════════════════════════
+     STATE
+  ═══════════════════════════════════════════════ */
+  const STORAGE_KEY = 'golfapp_rounds_v1';
+  const PLAYERS_KEY = 'golfapp_players_v1';
+  let currentRound = null;
+  let currentHole  = 1;
+
+  /* ── Player profiles ── */
+  function loadPlayers() {
+    try { return JSON.parse(localStorage.getItem(PLAYERS_KEY)) || {}; }
+    catch { return {}; }
+  }
+  function savePlayers(players) {
+    localStorage.setItem(PLAYERS_KEY, JSON.stringify(players));
+  }
+  function savePlayerHcp(name, hcpIndex) {
+    if (!name) return;
+    const players = loadPlayers();
+    players[name] = { ...(players[name] || {}), hcpIndex };
+    savePlayers(players);
+  }
+  function getPlayerHcp(name) {
+    const players = loadPlayers();
+    return players[name] ? players[name].hcpIndex : null;
+  }
+
+  /* ═══════════════════════════════════════════════
+     VIEW NAVIGATION
+  ═══════════════════════════════════════════════ */
+  function showView(id, playerFilter) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if (id === 'view-history') renderHistory(playerFilter);
+    if (id === 'view-home') renderPlayerList();
+    window.scrollTo(0, 0);
+  }
+
+  /* ═══════════════════════════════════════════════
+     LOCAL STORAGE
+  ═══════════════════════════════════════════════ */
+  function loadRounds() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+  }
+  function saveRounds(rounds) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rounds));
+  }
+  function saveCurrentRound() {
+    const rounds = loadRounds();
+    rounds.unshift({ ...currentRound, id: Date.now().toString() });
+    saveRounds(rounds);
+    currentRound.players.forEach(p => {
+      if (p.hcpIndex !== null) savePlayerHcp(p.name, p.hcpIndex);
+    });
+  }
+
+  /* Helper: normalise legacy single-player rounds to the new players-array shape */
+  function getRoundPlayers(r) {
+    if (r.players) return r.players;
+    return [{ name: r.player, hcpIndex: r.hcpIndex, playingHcp: r.playingHcp, holes: r.holes }];
+  }
+
+  /* ═══════════════════════════════════════════════
+     HOME – PLAYER SLOTS
+  ═══════════════════════════════════════════════ */
+  function addPlayerSlot(name, hcp) {
+    const container = document.getElementById('player-slots');
+    const slotCount = container.querySelectorAll('.player-slot').length;
+    if (slotCount >= 4) { showToast('Maximum 4 players'); return; }
+    const idx = slotCount;
+    const div = document.createElement('div');
+    div.className = 'player-slot';
+    div.innerHTML =
+      `<input type="text" class="slot-name" placeholder="Player ${idx + 1}"
+         value="${escHtml(String(name || ''))}" oninput="renderPlayerList()" autocomplete="off"
+         style="border:1.5px solid #dee2e6;border-radius:8px;background:var(--bg);color:var(--text)" />` +
+      `<input type="number" class="slot-hcp" placeholder="HCP"
+         value="${(hcp != null && hcp !== '') ? hcp : ''}" min="-10" max="54" step="0.1"
+         style="border:1.5px solid #dee2e6;border-radius:8px;background:var(--bg);color:var(--text)" />` +
+      (idx > 0
+        ? `<button class="slot-remove" onclick="removeSlot(this)" title="Remove player">✕</button>`
+        : `<span class="slot-remove-placeholder"></span>`);
+    container.appendChild(div);
+    updateAddPlayerButton();
+  }
+
+  function removeSlot(btn) {
+    btn.closest('.player-slot').remove();
+    document.querySelectorAll('.player-slot').forEach((slot, i) => {
+      slot.querySelector('.slot-name').placeholder = `Player ${i + 1}`;
+    });
+    updateAddPlayerButton();
+    renderPlayerList();
+  }
+
+  function updateAddPlayerButton() {
+    const count = document.querySelectorAll('.player-slot').length;
+    document.getElementById('btn-add-player').style.display = count >= 4 ? 'none' : '';
+  }
+
+  function addPlayerToSlot(name) {
+    const hcp = getPlayerHcp(name);
+    const slots = document.querySelectorAll('.player-slot');
+    for (const slot of slots) {
+      const nameInput = slot.querySelector('.slot-name');
+      if (!nameInput.value.trim()) {
+        nameInput.value = name;
+        if (hcp !== null) slot.querySelector('.slot-hcp').value = hcp;
+        renderPlayerList();
+        return;
+      }
+    }
+    if (slots.length < 4) {
+      addPlayerSlot(name, hcp);
+    } else {
+      showToast('Maximum 4 players reached');
+    }
+  }
+
+  /* ═══════════════════════════════════════════════
+     ROUND LIFECYCLE
+  ═══════════════════════════════════════════════ */
+  function startRound() {
+    const slots  = document.querySelectorAll('.player-slot');
+    const sel    = document.getElementById('course-select');
+    const course = COURSES[parseInt(sel.value)];
+    const date   = document.getElementById('round-date').value;
+
+    const playersData = [];
+    slots.forEach(slot => {
+      const name = slot.querySelector('.slot-name').value.trim();
+      if (!name) return;
+      const hcpRaw = parseFloat(slot.querySelector('.slot-hcp').value);
+      playersData.push({ name, hcpIndex: isNaN(hcpRaw) ? null : hcpRaw });
+    });
+
+    if (playersData.length === 0) { showToast('Please enter at least one player name'); return; }
+    if (!date) { showToast('Please select a date'); return; }
+
+    const players = playersData.map(p => {
+      const playingHcp = p.hcpIndex !== null
+        ? Math.round(p.hcpIndex * (course.sr / 113) + (course.cr - course.par))
+        : null;
+      return {
+        name: p.name, hcpIndex: p.hcpIndex, playingHcp,
+        holes: Array.from({ length: 18 }, (_, i) => ({
+          hole: i + 1, result: null, putts: null, gir: false, played: false
+        }))
+      };
+    });
+
+    currentRound = { course: course.name, courseHoles: course.holes, coursePar: course.par, date, players };
+    currentHole  = 1;
+    showView('view-hole');
+    renderHoleView();
+  }
+
+  /* Strokes received on a hole (WHS allocation) */
+  function strokesOnHole(playingHcp, holeIdx) {
+    if (playingHcp === null) return 0;
+    return Math.floor(playingHcp / 18) + (holeIdx <= (playingHcp % 18) ? 1 : 0);
+  }
+
+  function renderHoleView() {
+    const h = currentHole;
+    const courseHole = currentRound.courseHoles[h - 1];
+
+    document.getElementById('hole-badge').textContent = h;
+    document.getElementById('hole-course-label').textContent = currentRound.course;
+    document.getElementById('hole-par-chip').textContent = `Par ${courseHole.par}`;
+    document.getElementById('hole-idx-chip').textContent = `Idx ${courseHole.idx}`;
+    document.getElementById('hole-player-label').textContent = '';
+
+    const container = document.getElementById('hole-players-container');
+    container.innerHTML = currentRound.players.map((player, pi) => {
+      const data  = player.holes[h - 1];
+      const score = data.played ? data.result : courseHole.par;
+      const putts = data.played ? data.putts  : 2;
+      return `
+        <div class="hole-player-row">
+          <div class="hole-player-name">${escHtml(player.name)}</div>
+          <div class="hole-player-inputs">
+            <div class="hole-stepper-group">
+              <span class="hole-stepper-label">Score</span>
+              <div class="mini-stepper">
+                <button class="mini-stepper-btn" onclick="stepPlayer(${pi},'result',-1)">−</button>
+                <div class="mini-stepper-val" id="p${pi}-result">${score}</div>
+                <button class="mini-stepper-btn" onclick="stepPlayer(${pi},'result',+1)">+</button>
+              </div>
+            </div>
+            <div class="hole-stepper-group">
+              <span class="hole-stepper-label">Putts</span>
+              <div class="mini-stepper">
+                <button class="mini-stepper-btn" onclick="stepPlayer(${pi},'putts',-1)">−</button>
+                <div class="mini-stepper-val" id="p${pi}-putts">${putts}</div>
+                <button class="mini-stepper-btn" onclick="stepPlayer(${pi},'putts',+1)">+</button>
+              </div>
+            </div>
+            <div class="hole-stepper-group">
+              <span class="hole-stepper-label">GIR</span>
+              <input type="checkbox" class="gir-cb" id="p${pi}-gir" ${data.gir ? 'checked' : ''} />
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    document.getElementById('btn-prev').disabled = (h === 1);
+    document.getElementById('btn-next').textContent = h === 18 ? 'Finish →' : 'Next →';
+    const pct = ((h - 1) / 18) * 100;
+    document.getElementById('progress-fill').style.width = pct + '%';
+  }
+
+  function stepPlayer(pi, field, delta) {
+    const el = document.getElementById(`p${pi}-${field}`);
+    let val = parseInt(el.textContent) + delta;
+    if (field === 'result') val = Math.max(1, Math.min(20, val));
+    if (field === 'putts')  val = Math.max(0, Math.min(10, val));
+    el.textContent = val;
+  }
+
+  function readHoleInputs() {
+    const results = currentRound.players.map((player, pi) => ({
+      result: parseInt(document.getElementById(`p${pi}-result`).textContent),
+      putts:  parseInt(document.getElementById(`p${pi}-putts`).textContent),
+      gir:    document.getElementById(`p${pi}-gir`).checked
+    }));
+    for (let pi = 0; pi < results.length; pi++) {
+      const { result, putts } = results[pi];
+      const name = currentRound.players[pi].name;
+      if (isNaN(result) || result < 1) { showToast(`Invalid score for ${name}`); return null; }
+      if (isNaN(putts)  || putts  < 0) { showToast(`Invalid putts for ${name}`); return null; }
+      if (putts > result)               { showToast(`Putts can't exceed score for ${name}`); return null; }
+    }
+    return results.map(r => ({ ...r, played: true }));
+  }
+
+  function nextHole() {
+    const data = readHoleInputs();
+    if (!data) return;
+    data.forEach((d, pi) => {
+      currentRound.players[pi].holes[currentHole - 1] = {
+        ...currentRound.players[pi].holes[currentHole - 1], ...d
+      };
+    });
+    if (currentHole === 18) {
+      finishRound();
+    } else {
+      currentHole++;
+      renderHoleView();
+    }
+  }
+
+  function prevHole() {
+    currentRound.players.forEach((player, pi) => {
+      const result = parseInt(document.getElementById(`p${pi}-result`).textContent);
+      const putts  = parseInt(document.getElementById(`p${pi}-putts`).textContent);
+      const gir    = document.getElementById(`p${pi}-gir`).checked;
+      if (!isNaN(result) && !isNaN(putts)) {
+        player.holes[currentHole - 1] = { ...player.holes[currentHole - 1], result, putts, gir, played: true };
+      }
+    });
+    currentHole--;
+    renderHoleView();
+  }
+
+  function confirmFinish() {
+    const playedCount = currentRound.players[0].holes.filter(h => h.played).length;
+    if (playedCount === 0 && currentHole === 1) {
+      showToast('Enter at least one hole before finishing'); return;
+    }
+    if (confirm(`Finish round after hole ${currentHole}? Unplayed holes will be excluded.`)) {
+      currentRound.players.forEach((player, pi) => {
+        const result = parseInt(document.getElementById(`p${pi}-result`).textContent);
+        const putts  = parseInt(document.getElementById(`p${pi}-putts`).textContent);
+        if (!isNaN(result) && result > 0 && !isNaN(putts) && putts >= 0) {
+          player.holes[currentHole - 1] = {
+            ...player.holes[currentHole - 1],
+            result, putts,
+            gir: document.getElementById(`p${pi}-gir`).checked,
+            played: true
+          };
+        }
+      });
+      finishRound();
+    }
+  }
+
+  function finishRound() {
+    saveCurrentRound();
+    showSummary();
+  }
+
+  /* ═══════════════════════════════════════════════
+     SUMMARY
+  ═══════════════════════════════════════════════ */
+  function showSummary() {
+    const players = currentRound.players;
+    document.getElementById('summary-meta').textContent =
+      `${players.map(p => p.name).join(', ')} · ${currentRound.course} · ${formatDate(currentRound.date)}`;
+
+    document.getElementById('summary-stats').innerHTML = players.map(player => {
+      const played = player.holes.filter(h => h.played);
+      const ph     = player.playingHcp;
+      const totalScore = played.reduce((s, h) => s + h.result, 0);
+      const totalPutts = played.reduce((s, h) => s + h.putts,  0);
+      const girPct     = played.length ? Math.round((played.filter(h => h.gir).length / played.length) * 100) : 0;
+      const totalPar   = played.reduce((s, h) => s + currentRound.courseHoles[h.hole - 1].par, 0);
+      const vsPar      = totalScore - totalPar;
+      const vsParStr   = vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`);
+      const netScore   = ph !== null
+        ? played.reduce((s, h) => s + h.result - strokesOnHole(ph, currentRound.courseHoles[h.hole - 1].idx), 0)
+        : null;
+      const vsParNet    = netScore !== null ? netScore - totalPar : null;
+      const vsParNetStr = vsParNet === null ? '–' : vsParNet === 0 ? 'E' : (vsParNet > 0 ? `+${vsParNet}` : `${vsParNet}`);
+      return `
+        <div class="player-stat-card">
+          <div class="player-stat-name">${escHtml(player.name)}</div>
+          <div class="stat-grid">
+            <div class="stat-box"><div class="val">${totalScore}</div><div class="lbl">Gross</div></div>
+            <div class="stat-box"><div class="val">${vsParStr}</div><div class="lbl">vs Par</div></div>
+            ${netScore !== null
+              ? `<div class="stat-box"><div class="val">${netScore}</div><div class="lbl">Net</div></div>
+                 <div class="stat-box"><div class="val">${vsParNetStr}</div><div class="lbl">Net vs Par</div></div>`
+              : ''}
+            <div class="stat-box"><div class="val">${totalPutts}</div><div class="lbl">Putts</div></div>
+            <div class="stat-box"><div class="val">${girPct}%</div><div class="lbl">GIR</div></div>
+          </div>
+        </div>`;
+    }).join('');
+
+    // Combined scorecard table
+    const allHoleNums = [...new Set(
+      players.flatMap(p => p.holes.filter(h => h.played).map(h => h.hole))
+    )].sort((a, b) => a - b);
+
+    let hdr = `<th>#</th><th>Par</th><th>Idx</th>`;
+    players.forEach(p => {
+      const short = p.name.length > 6 ? p.name.slice(0, 5) + '…' : p.name;
+      hdr += `<th title="${escHtml(p.name)}">${escHtml(short)}</th>`;
+      if (p.playingHcp !== null) hdr += `<th>Net</th>`;
+    });
+    let rows = `<tr>${hdr}</tr>`;
+    allHoleNums.forEach(holeNum => {
+      const ch = currentRound.courseHoles[holeNum - 1];
+      let row = `<td>${holeNum}</td><td>${ch.par}</td><td>${ch.idx}</td>`;
+      players.forEach(p => {
+        const hd = p.holes[holeNum - 1];
+        if (hd && hd.played) {
+          const diff  = hd.result - ch.par;
+          const style = diff > 0 ? 'color:#e63946' : diff < 0 ? 'color:var(--green-mid)' : '';
+          row += `<td><strong${style ? ` style="${style}"` : ''}>${hd.result}</strong></td>`;
+          if (p.playingHcp !== null) {
+            row += `<td>${hd.result - strokesOnHole(p.playingHcp, ch.idx)}</td>`;
+          }
+        } else {
+          row += `<td>–</td>`;
+          if (p.playingHcp !== null) row += `<td>–</td>`;
+        }
+      });
+      rows += `<tr>${row}</tr>`;
+    });
+    document.getElementById('summary-table').innerHTML = rows;
+
+    showView('view-summary');
+  }
+
+  /* ═══════════════════════════════════════════════
+     HISTORY
+  ═══════════════════════════════════════════════ */
+  function renderHistory(preselect) {
+    const allRounds = loadRounds();
+    const container = document.getElementById('history-list');
+    const select    = document.getElementById('history-player-filter');
+
+    const playerSet = new Set();
+    allRounds.forEach(r => getRoundPlayers(r).forEach(p => playerSet.add(p.name)));
+    const players = [...playerSet].sort((a, b) => a.localeCompare(b));
+
+    const current = preselect || select.value;
+    select.innerHTML = players.map(p =>
+      `<option value="${escHtml(p)}" ${p === current ? 'selected' : ''}>${escHtml(p)}</option>`
+    ).join('');
+
+    if (players.length === 0) {
+      select.innerHTML = '<option value="">No rounds yet</option>';
+      container.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>No rounds saved yet.</p></div>`;
+      return;
+    }
+
+    const selectedPlayer = select.value;
+    const rounds = allRounds.filter(r => getRoundPlayers(r).some(p => p.name === selectedPlayer));
+
+    if (rounds.length === 0) {
+      container.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>No rounds for ${escHtml(selectedPlayer)}.</p></div>`;
+      return;
+    }
+
+    container.innerHTML = rounds.map((r, idx) => {
+      const roundPlayers = getRoundPlayers(r);
+      const focus  = roundPlayers.find(p => p.name === selectedPlayer) || roundPlayers[0];
+      const played = focus.holes.filter(h => h.played);
+      const totalScore = played.reduce((s, h) => s + h.result, 0);
+      const totalPutts = played.reduce((s, h) => s + h.putts,  0);
+      const girPct     = played.length ? Math.round((played.filter(h => h.gir).length / played.length) * 100) : 0;
+      const ph         = focus.playingHcp;
+      const netScore   = (ph !== null && r.courseHoles)
+        ? played.reduce((s, h) => s + h.result - strokesOnHole(ph, r.courseHoles[h.hole - 1].idx), 0)
+        : null;
+      const allNames = roundPlayers.map(p => p.name).join(', ');
+
+      const playerDetails = roundPlayers.map(p => {
+        const pPlayed = p.holes.filter(h => h.played);
+        const pPh     = p.playingHcp;
+        const pScore  = pPlayed.reduce((s, h) => s + h.result, 0);
+        const tableHeader = `<tr><th>#</th><th>Gross</th>${pPh !== null ? '<th>Stk</th><th>Net</th>' : ''}<th>Putts</th><th>GIR</th></tr>`;
+        const tableRows = pPlayed.map(h => {
+          const stk = (pPh !== null && r.courseHoles) ? strokesOnHole(pPh, r.courseHoles[h.hole - 1].idx) : null;
+          return `<tr>
+            <td>${h.hole}</td><td>${h.result}</td>
+            ${stk !== null ? `<td>${stk > 0 ? stk : '–'}</td><td>${h.result - stk}</td>` : ''}
+            <td>${h.putts}</td>
+            <td class="${h.gir ? 'gir-yes' : 'gir-no'}">${h.gir ? '✓' : '–'}</td>
+          </tr>`;
+        }).join('');
+        return `<div style="margin-bottom:12px">
+          <strong style="color:var(--green-dark)">${escHtml(p.name)}</strong>
+          <span style="color:var(--muted);font-size:0.82rem"> — ${pScore} gross${p.hcpIndex != null ? ` · HCP ${p.hcpIndex}` : ''}</span>
+          <div style="overflow-x:auto"><table>${tableHeader}${tableRows}</table></div>
+        </div>`;
+      }).join('');
+
+      return `
+      <div class="round-item">
+        <div class="round-summary-row" onclick="toggleDetail('detail-${idx}')">
+          <div class="round-icon">⛳</div>
+          <div class="round-info">
+            <div class="course">${escHtml(r.course)}</div>
+            <div class="meta">${formatDate(r.date)}${roundPlayers.length > 1 ? ' · ' + escHtml(allNames) : ''} · ${played.length} holes · ${totalPutts} putts · GIR ${girPct}%${focus.hcpIndex != null ? ` · HCP ${focus.hcpIndex}` : ''}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="round-score">${totalScore}</div>
+            ${netScore !== null ? `<div style="font-size:0.78rem;color:var(--muted)">Net ${netScore}</div>` : ''}
+          </div>
+        </div>
+        <div class="round-detail" id="detail-${idx}">
+          ${playerDetails}
+          <div class="round-actions">
+            <button class="btn btn-danger btn-ghost" style="font-size:0.85rem;padding:8px 14px" onclick="deleteRound('${r.id}')">🗑 Delete</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function toggleDetail(id) {
+    document.getElementById(id).classList.toggle('open');
+  }
+
+  function deleteRound(id) {
+    if (!confirm('Delete this round?')) return;
+    saveRounds(loadRounds().filter(r => r.id !== id));
+    renderHistory();
+    showToast('Round deleted');
+  }
+
+  /* ═══════════════════════════════════════════════
+     UTILITIES
+  ═══════════════════════════════════════════════ */
+  function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  /* ── Player list sidebar ── */
+  function renderPlayerList() {
+    const rounds   = loadRounds();
+    const profiles = loadPlayers();
+    const namesFromRounds = rounds.flatMap(r => getRoundPlayers(r).map(p => p.name));
+    const allNames = [...new Set([...Object.keys(profiles), ...namesFromRounds])].sort((a,b) => a.localeCompare(b));
+    const container = document.getElementById('player-list-items');
+    const slotNames = [...document.querySelectorAll('.slot-name')].map(el => el.value.trim()).filter(Boolean);
+
+    if (allNames.length === 0) {
+      container.innerHTML = '<div class="player-list-empty">No players yet</div>';
+      return;
+    }
+    container.innerHTML = allNames.map(p => {
+      const hcp = profiles[p] ? profiles[p].hcpIndex : null;
+      const hcpLabel = hcp !== null ? `<span style="font-size:0.72rem;color:var(--muted);display:block">HCP ${hcp}</span>` : '';
+      const isActive = slotNames.includes(p);
+      return `<button class="player-btn ${isActive ? 'active' : ''}" onclick="addPlayerToSlot('${escHtml(p)}')">${escHtml(p)}${hcpLabel}</button>`;
+    }).join('');
+  }
+
+  /* ── Set today's date as default & init ── */
+  document.getElementById('round-date').value = new Date().toISOString().slice(0, 10);
+  addPlayerSlot();
+  renderPlayerList();
+</script>
+</body>
+</html>
