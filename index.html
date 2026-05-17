@@ -180,30 +180,32 @@
 
     /* ── Home two-column layout ── */
     .home-layout {
-      display: flex; gap: 16px; align-items: flex-start;
+      display: flex; flex-direction: column; gap: 0;
     }
     .player-list-col {
-      width: 130px; flex-shrink: 0;
       background: var(--card); border-radius: var(--radius);
-      box-shadow: var(--shadow); overflow: hidden;
+      box-shadow: var(--shadow); overflow: hidden; margin-bottom: 16px;
     }
     .player-list-col h3 {
       font-size: 0.75rem; font-weight: 700; color: #fff;
-      background: var(--green-dark); padding: 8px 10px; text-transform: uppercase; letter-spacing: .5px;
+      background: var(--green-dark); padding: 8px 14px; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .player-list-items-row {
+      display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 12px;
     }
     .player-list-empty {
-      padding: 12px 10px; font-size: 0.78rem; color: var(--muted); text-align: center;
+      padding: 12px 14px; font-size: 0.78rem; color: var(--muted);
     }
     .player-btn {
-      display: block; width: 100%; text-align: left;
-      padding: 10px 12px; font-size: 0.88rem; font-weight: 500;
-      border: none; background: transparent; cursor: pointer; color: var(--text);
-      border-bottom: 1px solid #f0f0f0; transition: background .15s;
+      display: inline-flex; flex-direction: column; align-items: center;
+      padding: 8px 14px; font-size: 0.88rem; font-weight: 500;
+      border: 1.5px solid #dee2e6; border-radius: 8px;
+      background: transparent; cursor: pointer; color: var(--text);
+      transition: background .15s;
     }
-    .player-btn:last-child { border-bottom: none; }
-    .player-btn:hover  { background: var(--green-pale); }
-    .player-btn.active { background: var(--green-pale); color: var(--green-dark); font-weight: 700; }
-    .form-col { flex: 1; min-width: 0; }
+    .player-btn:hover  { background: var(--green-pale); border-color: var(--green-light); }
+    .player-btn.active { background: var(--green-pale); color: var(--green-dark); font-weight: 700; border-color: var(--green-mid); }
+    .form-col { width: 100%; }
     .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
     .empty-state .icon { font-size: 3rem; margin-bottom: 10px; }
 
@@ -277,14 +279,14 @@
 <!-- ══ HOME VIEW ══ -->
 <div id="view-home" class="view active">
   <div class="home-layout">
-    <!-- Player list -->
+    <!-- Player list on top -->
     <div class="player-list-col">
-      <h3>Players</h3>
-      <div id="player-list-items">
-        <div class="player-list-empty">No players yet</div>
+      <h3>Select Players</h3>
+      <div id="player-list-items" class="player-list-items-row">
+        <div class="player-list-empty">No players yet — name will appear after first round</div>
       </div>
     </div>
-    <!-- Form -->
+    <!-- Form below -->
     <div class="form-col">
       <div class="card">
         <h2>New Round</h2>
