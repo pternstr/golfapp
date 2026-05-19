@@ -1092,7 +1092,11 @@
   let _lastTap = 0;
   document.addEventListener('touchstart', function(e) {
     const now = Date.now();
-    if (now - _lastTap <= 300 && e.target.closest('button')) e.preventDefault();
+    const btn = e.target.closest('button');
+    if (now - _lastTap <= 300 && btn) {
+      e.preventDefault();   // block zoom
+      btn.click();          // still fire the action
+    }
     _lastTap = now;
   }, { passive: false });
 
