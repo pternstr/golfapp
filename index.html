@@ -1016,7 +1016,9 @@
         </div>
         <div class="round-detail" id="detail-${idx}">
           ${playerDetails}
+          <div id="hstats-${idx}" style="display:none;margin-bottom:10px"></div>
           <div class="round-actions">
+            <button class="btn btn-secondary" style="font-size:0.85rem;padding:8px 14px" onclick="toggleRoundStats('hstats-${idx}','${r.id}')">📊 Stats</button>
             <button class="btn btn-danger btn-ghost" style="font-size:0.85rem;padding:8px 14px" onclick="deleteRound('${r.id}')">🗑 Delete</button>
           </div>
         </div>
@@ -1033,6 +1035,73 @@
     saveRounds(loadRounds().filter(r => r.id !== id));
     renderHistory();
     showToast('Round deleted');
+  }
+
+  function toggleRoundStats(containerId, roundId) {
+    const el = document.getElementById(containerId);
+    if (el.style.display !== 'none') { el.style.display = 'none'; return; }
+    if (!el.innerHTML) {
+      const r = loadRounds().find(r => r.id === roundId);
+      if (!r || !r.courseHoles) { showToast('No hole data available'); return; }
+      el.innerHTML = computeRoundStatsHTML(r);
+    }
+    el.style.display = '';
+  }
+
+  function computeRoundStatsHTML(r) {
+    const players = getRoundPlayers(r);
+    const playerStats = players.map(player => {
+      const played = player.holes.filter(h => h.played);
+      const ph = player.playingHcp;
+      const totalScore = played.reduce((s, h) => s + h.result, 0);
+      const totalPutts = played.reduce((s, h) => s + h.putts, 0);
+      const girPct = played.length ? Math.round((played.filter(h => h.gir).length / played.length) * 100) : 0;
+      const totalPar = played.reduce((s, h) => s + r.courseHoles[h.hole - 1].par, 0);
+      const vsPar = totalScore - totalPar;
+      const vsParStr = vsPar === 0 ? 'E' : (vsPar > 0 ? `+${vsPar}` : `${vsPar}`);
+      const netScore = ph !== null
+        ? played.reduce((s, h) => s + h.result - strokesOnHole(ph, r.courseHoles[h.hole - 1].idx), 0)
+        : null;
+      const vsParNet = netScore !== null ? netScore - totalPar : null;
+      const vsParNetStr = vsParNet === null ? '\u2013' : vsParNet === 0 ? 'E' : (vsParNet > 0 ? `+${vsParNet}` : `${vsParNet}`);
+      const pCR = player.playerCR ?? r.courseCR;
+      const pSR = player.playerSR ?? r.courseSR;
+      const diff = (player.hcpIndex !== null && pCR != null && pSR != null)
+        ? Math.round((totalScore - pCR) * (113 / pSR) * 10) / 10
+        : null;
+      const diffStr = diff === null ? null : (diff > 0 ? `+${diff.toFixed(1)}` : diff.toFixed(1));
+      const stablefordPts = ph !== null
+        ? played.reduce((s, h) => {
+            const ch = r.courseHoles[h.hole - 1];
+            const net = h.result - strokesOnHole(ph, ch.idx);
+            return s + Math.max(0, 2 - (net - ch.par));
+          }, 0)
+        : null;
+      return { totalScore, vsParStr, diff, diffStr, netScore, vsParNetStr, stablefordPts, totalPutts, girPct };
+    });
+    const showDiff       = playerStats.some(s => s.diff !== null);
+    const showNet        = playerStats.some(s => s.netScore !== null);
+    const showStableford = playerStats.some(s => s.stablefordPts !== null);
+    const matrixRows = [
+      { lbl:'Gross',       vals: playerStats.map(s => s.totalScore) },
+      { lbl:'vs Par',      vals: playerStats.map(s => s.vsParStr) },
+      ...(showDiff ? [{ lbl:'Rund-HCP', vals: playerStats.map(s => s.diffStr ?? '\u2013') }] : []),
+      ...(showNet  ? [
+        { lbl:'Net',        vals: playerStats.map(s => s.netScore !== null ? s.netScore : '\u2013') },
+        { lbl:'Net vs Par', vals: playerStats.map(s => s.netScore !== null ? s.vsParNetStr : '\u2013') },
+      ] : []),
+      ...(showStableford ? [{ lbl:'Po\u00e4ngbogey', vals: playerStats.map(s => s.stablefordPts !== null ? s.stablefordPts : '\u2013') }] : []),
+      { lbl:'Putts',       vals: playerStats.map(s => s.totalPutts) },
+      { lbl:'GIR',         vals: playerStats.map(s => `${s.girPct}%`) },
+    ];
+    const hdr = `<tr><th style="text-align:left"></th>${players.map(p =>
+      `<th>${escHtml(p.name)}${p.playingHcp !== null ? ` (${p.playingHcp})` : ''}${
+        p.teeName ? `<br><span style="font-size:0.68rem;font-weight:400;opacity:0.85">${escHtml(p.teeName)}</span>` : ''}</th>`
+    ).join('')}</tr>`;
+    const body = matrixRows.map(row =>
+      `<tr><td style="text-align:left;font-weight:600;color:var(--muted)">${row.lbl}</td>${row.vals.map(v => `<td style="font-weight:800">${v}</td>`).join('')}</tr>`
+    ).join('');
+    return `<div style="overflow-x:auto"><table><thead>${hdr}</thead><tbody>${body}</tbody></table></div>`;
   }
 
   /* ═══════════════════════════════════════════════
