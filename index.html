@@ -222,9 +222,7 @@
     .empty-state .icon { font-size: 3rem; margin-bottom: 10px; }
 
     /* ── Player slots (home screen) ── */
-    .player-slot {
-      display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
-    }
+    .player-slot { margin-bottom: 8px; }
     .player-slot .slot-name { flex: 1; min-width: 0; padding: 9px 11px; font-size: 0.92rem; }
     .player-slot .slot-hcp  { width: 72px; flex-shrink: 0; padding: 9px 8px; font-size: 0.92rem; }
     .slot-remove {
@@ -269,7 +267,11 @@
     .player-stat-card { margin-bottom: 18px; }
     .player-stat-card:last-child { margin-bottom: 0; }
     .player-stat-name { font-weight: 700; color: var(--green-dark); margin-bottom: 8px; font-size: 1rem; }
-    .player-stat-card .stat-grid { grid-template-columns: repeat(3, 1fr); }
+    .stat-list { display: flex; flex-direction: column; }
+    .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #f0f0f0; }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-row .stat-lbl { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+    .stat-row .stat-val { font-size: 0.95rem; font-weight: 800; color: var(--green-dark); }
 
     .toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -311,7 +313,7 @@
         </div>
         <div class="field">
           <label for="course-select">Course</label>
-          <select id="course-select"
+          <select id="course-select" onchange="populateTeeSelect()"
             style="width:100%;padding:11px 14px;font-size:1rem;border:1.5px solid #dee2e6;border-radius:8px;background:var(--bg);color:var(--text)">
           </select>
         </div>
@@ -362,7 +364,7 @@
   <div class="card">
     <h2>Round Complete 🎉</h2>
     <div id="summary-meta" style="color:var(--muted);font-size:0.85rem;margin-bottom:16px"></div>
-    <div class="stat-grid" id="summary-stats"></div>
+    <div id="summary-stats"></div>
   </div>
   <div class="card">
     <h2>Scorecard</h2>
@@ -474,7 +476,12 @@
       {par:4,idx:13},{par:4,idx:8},{par:5,idx:4},{par:4,idx:2},
       {par:3,idx:14},{par:4,idx:10},{par:3,idx:18},{par:4,idx:6},
       {par:5,idx:12},{par:4,idx:16}]},
-    { name:'Mölndals GK', par:72, cr:71.5, sr:134, holes:[
+    { name:'Mölndals GK', par:72, cr:71.5, sr:134, tees:[
+      {label:'Gul · Herr',  cr:71.5, sr:134},
+      {label:'Blå · Herr',  cr:70.3, sr:132},
+      {label:'Gul · Dam',   cr:77.6, sr:139},
+      {label:'Blå · Dam',   cr:76.1, sr:137},
+    ], holes:[
       {par:4,idx:13},{par:5,idx:3},{par:3,idx:17},{par:4,idx:11},
       {par:5,idx:9},{par:4,idx:7},{par:3,idx:15},{par:4,idx:5},
       {par:4,idx:1},{par:5,idx:10},{par:3,idx:16},{par:4,idx:4},
@@ -499,7 +506,22 @@
     });
     const defaultIdx = COURSES.findIndex(c => c.name.includes('Mölndal'));
     if (defaultIdx >= 0) sel.value = defaultIdx;
+    populateTeeSelect();
   })();
+
+  function populateTeeSelect() {
+    const courseIdx = parseInt(document.getElementById('course-select').value);
+    const course = COURSES[courseIdx];
+    const tees = course.tees || [];
+    const hasTees = tees.length > 1;
+    const options = hasTees ? tees.map((t, i) =>
+      `<option value="${i}">${escHtml(t.label)}</option>`
+    ).join('') : '';
+    document.querySelectorAll('.slot-tee').forEach(sel => {
+      sel.innerHTML = options;
+      sel.style.display = hasTees ? '' : 'none';
+    });
+  }
 
   /* ═══════════════════════════════════════════════
      STATE
@@ -575,17 +597,21 @@
     const div = document.createElement('div');
     div.className = 'player-slot';
     div.innerHTML =
-      `<input type="text" class="slot-name" placeholder="Player ${idx + 1}"
-         value="${escHtml(String(name || ''))}" oninput="renderPlayerList()" autocomplete="off"
-         style="border:1.5px solid #dee2e6;border-radius:8px;background:var(--bg);color:var(--text)" />` +
-      `<input type="number" class="slot-hcp" placeholder="HCP"
-         value="${(hcp != null && hcp !== '') ? hcp : ''}" min="-10" max="54" step="0.1"
-         style="border:1.5px solid #dee2e6;border-radius:8px;background:var(--bg);color:var(--text)" />` +
-      (idx > 0
-        ? `<button class="slot-remove" onclick="removeSlot(this)" title="Remove player">✕</button>`
-        : `<span class="slot-remove-placeholder"></span>`);
+      `<div style="display:flex;align-items:center;gap:6px">` +
+        `<input type="text" class="slot-name" placeholder="Player ${idx + 1}"
+           value="${escHtml(String(name || ''))}" oninput="renderPlayerList()" autocomplete="off"
+           style="border:1.5px solid #dee2e6;border-radius:8px;background:var(--bg);color:var(--text)" />` +
+        `<input type="number" class="slot-hcp" placeholder="HCP"
+           value="${(hcp != null && hcp !== '') ? hcp : ''}" min="-10" max="54" step="0.1"
+           style="border:1.5px solid #dee2e6;border-radius:8px;background:var(--bg);color:var(--text)" />` +
+        (idx > 0
+          ? `<button class="slot-remove" onclick="removeSlot(this)" title="Remove player">✕</button>`
+          : `<span class="slot-remove-placeholder"></span>`) +
+      `</div>` +
+      `<select class="slot-tee" style="display:none;width:100%;padding:9px 11px;font-size:0.92rem;border:1.5px solid #dee2e6;border-radius:8px;background:var(--bg);color:var(--text);margin-top:6px"></select>`;
     container.appendChild(div);
     updateAddPlayerButton();
+    populateTeeSelect();
   }
 
   function removeSlot(btn) {
@@ -635,25 +661,31 @@
       const name = slot.querySelector('.slot-name').value.trim();
       if (!name) return;
       const hcpRaw = parseFloat(slot.querySelector('.slot-hcp').value);
-      playersData.push({ name, hcpIndex: isNaN(hcpRaw) ? null : hcpRaw });
+      const teeIdx = parseInt(slot.querySelector('.slot-tee').value) || 0;
+      playersData.push({ name, hcpIndex: isNaN(hcpRaw) ? null : hcpRaw, teeIdx });
     });
 
     if (playersData.length === 0) { showToast('Please enter at least one player name'); return; }
     if (!date) { showToast('Please select a date'); return; }
 
+    const courseTees = course.tees || [{label:'Standard', cr:course.cr, sr:course.sr}];
+    const hasTees = courseTees.length > 1;
+
     const players = playersData.map(p => {
+      const tee = courseTees[hasTees ? (p.teeIdx || 0) : 0];
       const playingHcp = p.hcpIndex !== null
-        ? Math.round(p.hcpIndex * (course.sr / 113) + (course.cr - course.par))
+        ? Math.round(p.hcpIndex * (tee.sr / 113) + (tee.cr - course.par))
         : null;
       return {
         name: p.name, hcpIndex: p.hcpIndex, playingHcp,
+        teeName: hasTees ? tee.label : null, playerCR: tee.cr, playerSR: tee.sr,
         holes: Array.from({ length: 18 }, (_, i) => ({
           hole: i + 1, result: null, putts: null, gir: false, played: false
         }))
       };
     });
 
-    currentRound = { course: course.name, courseHoles: course.holes, coursePar: course.par, date, players };
+    currentRound = { course: course.name, courseHoles: course.holes, coursePar: course.par, courseCR: players[0].playerCR, courseSR: players[0].playerSR, date, players };
     currentHole  = 1;
     showView('view-hole');
     renderHoleView();
@@ -683,7 +715,7 @@
       const autoGir = data.played ? data.gir : (score === courseHole.par && putts === 2);
       return `
         <div class="hole-player-row">
-          <div class="hole-player-name">${escHtml(player.name)}</div>
+          <div class="hole-player-name">${escHtml(player.name)}${player.playingHcp !== null ? `<span style="display:block;font-size:0.62rem;font-weight:600;color:var(--muted)">Spel-HCP ${player.playingHcp}</span>` : ''}</div>
           <div class="hole-player-inputs">
             <div class="hole-stepper-group">
               <span class="hole-stepper-label">Score</span>
@@ -809,7 +841,7 @@
     document.getElementById('summary-meta').textContent =
       `${players.map(p => p.name).join(', ')} · ${currentRound.course} · ${formatDate(currentRound.date)}`;
 
-    document.getElementById('summary-stats').innerHTML = players.map(player => {
+    const playerStats = players.map(player => {
       const played = player.holes.filter(h => h.played);
       const ph     = player.playingHcp;
       const totalScore = played.reduce((s, h) => s + h.result, 0);
@@ -823,21 +855,48 @@
         : null;
       const vsParNet    = netScore !== null ? netScore - totalPar : null;
       const vsParNetStr = vsParNet === null ? '–' : vsParNet === 0 ? 'E' : (vsParNet > 0 ? `+${vsParNet}` : `${vsParNet}`);
-      return `
-        <div class="player-stat-card">
-          <div class="player-stat-name">${escHtml(player.name)}</div>
-          <div class="stat-grid">
-            <div class="stat-box"><div class="val">${totalScore}</div><div class="lbl">Gross</div></div>
-            <div class="stat-box"><div class="val">${vsParStr}</div><div class="lbl">vs Par</div></div>
-            ${netScore !== null
-              ? `<div class="stat-box"><div class="val">${netScore}</div><div class="lbl">Net</div></div>
-                 <div class="stat-box"><div class="val">${vsParNetStr}</div><div class="lbl">Net vs Par</div></div>`
-              : ''}
-            <div class="stat-box"><div class="val">${totalPutts}</div><div class="lbl">Putts</div></div>
-            <div class="stat-box"><div class="val">${girPct}%</div><div class="lbl">GIR</div></div>
-          </div>
-        </div>`;
-    }).join('');
+      const pCR = player.playerCR ?? currentRound.courseCR;
+      const pSR = player.playerSR ?? currentRound.courseSR;
+      const diff = (player.hcpIndex !== null && pCR != null && pSR != null)
+        ? Math.round((totalScore - pCR) * (113 / pSR) * 10) / 10
+        : null;
+      const diffStr = diff === null ? null : (diff > 0 ? `+${diff.toFixed(1)}` : diff.toFixed(1));
+      const stablefordPts = ph !== null
+        ? played.reduce((s, h) => {
+            const ch = currentRound.courseHoles[h.hole - 1];
+            const net = h.result - strokesOnHole(ph, ch.idx);
+            return s + Math.max(0, 2 - (net - ch.par));
+          }, 0)
+        : null;
+      return { totalScore, vsParStr, diff, diffStr, netScore, vsParNetStr, stablefordPts, totalPutts, girPct };
+    });
+
+    const showDiff       = playerStats.some(s => s.diff !== null);
+    const showNet        = playerStats.some(s => s.netScore !== null);
+    const showStableford = playerStats.some(s => s.stablefordPts !== null);
+
+    const matrixRows = [
+      { lbl:'Gross',       vals: playerStats.map(s => s.totalScore) },
+      { lbl:'vs Par',      vals: playerStats.map(s => s.vsParStr) },
+      ...(showDiff ? [{ lbl:'Rund-HCP', vals: playerStats.map(s => s.diffStr ?? '–') }] : []),
+      ...(showNet  ? [
+        { lbl:'Net',        vals: playerStats.map(s => s.netScore !== null ? s.netScore : '–') },
+        { lbl:'Net vs Par', vals: playerStats.map(s => s.netScore !== null ? s.vsParNetStr : '–') },
+      ] : []),
+      ...(showStableford ? [{ lbl:'Poängbogey', vals: playerStats.map(s => s.stablefordPts !== null ? s.stablefordPts : '–') }] : []),
+      { lbl:'Putts',       vals: playerStats.map(s => s.totalPutts) },
+      { lbl:'GIR',         vals: playerStats.map(s => `${s.girPct}%`) },
+    ];
+
+    const matrixHdr = `<tr><th style="text-align:left"></th>${players.map(p =>
+      `<th>${escHtml(p.name)}${p.playingHcp !== null ? ` (${p.playingHcp})` : ''}${p.teeName ? `<br><span style="font-size:0.68rem;font-weight:400;opacity:0.85">${escHtml(p.teeName)}</span>` : ''}</th>`
+    ).join('')}</tr>`;
+    const matrixBody = matrixRows.map(r =>
+      `<tr><td style="text-align:left;font-weight:600;color:var(--muted)">${r.lbl}</td>${r.vals.map(v => `<td style="font-weight:800">${v}</td>`).join('')}</tr>`
+    ).join('');
+
+    document.getElementById('summary-stats').innerHTML =
+      `<div style="overflow-x:auto"><table><thead>${matrixHdr}</thead><tbody>${matrixBody}</tbody></table></div>`;
 
     // Combined scorecard table
     const allHoleNums = [...new Set(
@@ -937,7 +996,7 @@
         }).join('');
         return `<div style="margin-bottom:12px">
           <strong style="color:var(--green-dark)">${escHtml(p.name)}</strong>
-          <span style="color:var(--muted);font-size:0.82rem"> — ${pScore} gross${p.hcpIndex != null ? ` · HCP ${p.hcpIndex}` : ''}</span>
+          <span style="color:var(--muted);font-size:0.82rem"> — ${pScore} gross${p.hcpIndex != null ? ` · HCP ${p.hcpIndex}` : ''}${p.teeName ? ` · ${escHtml(p.teeName)}` : ''}</span>
           <div style="overflow-x:auto"><table>${tableHeader}${tableRows}</table></div>
         </div>`;
       }).join('');
@@ -947,7 +1006,7 @@
         <div class="round-summary-row" onclick="toggleDetail('detail-${idx}')">
           <div class="round-icon">⛳</div>
           <div class="round-info">
-            <div class="course">${escHtml(r.course)}</div>
+            <div class="course">${escHtml(r.course)}${r.teeName ? ` · ${escHtml(r.teeName)}` : ''}</div>
             <div class="meta">${formatDate(r.date)}${roundPlayers.length > 1 ? ' · ' + escHtml(allNames) : ''} · ${played.length} holes · ${totalPutts} putts · GIR ${girPct}%${focus.hcpIndex != null ? ` · HCP ${focus.hcpIndex}` : ''}</div>
           </div>
           <div style="text-align:right">
